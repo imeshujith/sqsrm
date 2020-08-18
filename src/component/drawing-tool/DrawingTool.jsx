@@ -84,12 +84,19 @@ class DrawingTool extends Component {
     super();
     this.state = {
       show: false,
-      coordinate: [0, 0],
+      coordinate: null,
       point: null,
       drawMap: [],
       remainingBlocks: 0,
+      mergePoints: 0,
       blockType: null,
-      lanes: [],
+      laneData: [],
+      laneNumber: null,
+      previousCoordinates: null,
+      pathData: {
+        id: null,
+        path: [],
+      },
     };
   }
 
@@ -110,11 +117,15 @@ class DrawingTool extends Component {
             key={x}
             className={"text-center"}
             onClick={this.drawPath}
-            onDoubleClick={() =>
-              this.setState({ show: true, close: false, coordinate: [y, x] })
+            onDoubleClick={(e) =>
+              this.setState({
+                show: true,
+                close: false,
+                coordinate: y + "," + x,
+              })
             }
-            id={y + "" + x}
-            key={y + "" + x}
+            id={y + "," + x}
+            key={y + "," + x}
           ></td>
         );
       }
@@ -175,80 +186,131 @@ class DrawingTool extends Component {
     this.setState({ blockType: e.target.id });
   };
 
-  definePoints(e) {}
+  definePoint = (e) => {
+    e.preventDefault();
+    if (this.state.laneData) {
+      let newLaneData = this.state.laneData.filter((object) => {
+        if (object.coordinate === this.state.coordinate) {
+          console.log(object);
+        }
+      });
+    }
+  };
 
   setLane = (e) => {
-    let lane = {},
-      lanes = [];
-    lanes.number = e.target.value;
-    lanes.blokcs = 0;
-    lanes.push({ path: lane });
-    this.setState({ lanes: { path: lane } });
-    console.log(this.state.lanes);
+    this.setState({ laneNumber: e.target.value });
   };
 
   drawPath = (e) => {
-    let row = parseInt(e.target.id.charAt(0));
-    let column = parseInt(e.target.id.charAt(1));
-
-    let newMap = this.state.drawMap;
+    let gridId = e.target.id;
+    // let arrayId = gridId.split(",");
+    // let row = arrayId.splice(0, 1).join("");
+    // let column = arrayId.join(",");
 
     if (
       this.state.blockType === "Straight" &&
       this.state.remainingBlocks >= 1
     ) {
-      e.target.style.backgroundColor = "#607d8b";
-      e.target.style.border = "none";
-      e.target.style.borderRadius = squareStyles["straight"];
-      document.getElementById(e.target.id).innerHTML = "1";
-      newMap[row][column] = 1;
+      this.setGridStyle(
+        e,
+        colors[this.state.laneNumber],
+        "none",
+        squareStyles["straight"]
+      );
+      this.setLaneData(gridId, 1);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (this.state.blockType === "Delete") {
-      e.target.style.backgroundColor = "#fff";
-      e.target.style.border = "1px doted #585858";
-      e.target.style.borderRadius = squareStyles["delete"];
-      document.getElementById(e.target.id).innerHTML = "";
-      newMap[row][column] = 0;
+      if (this.state.laneData) {
+        let newLaneData = this.state.laneData.filter(function (object) {
+          return object.coordinate !== gridId;
+        });
+        this.setState({ laneData: newLaneData });
+      }
+
+      this.setGridStyle(e, "#fff", "1px solid #cfd8dc", squareStyles["delete"]);
       this.setState({ remainingBlocks: (this.state.remainingBlocks += 1) });
     } else if (
       this.state.blockType === "Top Left" &&
       this.state.remainingBlocks >= 1
     ) {
-      e.target.style.backgroundColor = "#607d8b";
-      e.target.style.border = "none";
-      e.target.style.borderRadius = squareStyles["topLeft"];
-      newMap[row][column] = 2;
+      this.setGridStyle(
+        e,
+        colors[this.state.laneNumber],
+        "none",
+        squareStyles["topLeft"]
+      );
+
+      this.setLaneData(gridId, 2);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (
       this.state.blockType === "Top Right" &&
       this.state.remainingBlocks >= 1
     ) {
-      e.target.style.backgroundColor = "#607d8b";
-      e.target.style.border = "none";
-      e.target.style.borderRadius = squareStyles["topRight"];
-      newMap[row][column] = 3;
+      this.setGridStyle(
+        e,
+        colors[this.state.laneNumber],
+        "none",
+        squareStyles["topRight"]
+      );
+
+      this.setLaneData(gridId, 3);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (
       this.state.blockType === "Bottom Left" &&
       this.state.remainingBlocks >= 1
     ) {
-      e.target.style.backgroundColor = "#607d8b";
-      e.target.style.border = "none";
-      e.target.style.borderRadius = squareStyles["bottomLeft"];
-      newMap[row][column] = 4;
+      this.setGridStyle(
+        e,
+        colors[this.state.laneNumber],
+        "none",
+        squareStyles["bottomLeft"]
+      );
+
+      this.setLaneData(gridId, 4);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (
       this.state.blockType === "Bottom Right" &&
       this.state.remainingBlocks >= 1
     ) {
-      e.target.style.backgroundColor = "#607d8b";
-      e.target.style.border = "none";
-      e.target.style.borderRadius = squareStyles["bottomRight"];
-      newMap[row][column] = 5;
+      this.setGridStyle(
+        e,
+        colors[this.state.laneNumber],
+        "none",
+        squareStyles["bottomRight"]
+      );
+      this.setLaneData(gridId, 5);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     }
+  };
 
-    this.setState({ drawMap: newMap });
+  setGridStyle = (event, color, border, squareStyle) => {
+    event.target.style.backgroundColor = color;
+    event.target.style.border = border;
+    event.target.style.borderRadius = squareStyle;
+  };
+
+  setLaneData = (gridId, shape) => {
+    this.state.laneData.push({
+      coordinate: gridId,
+      point: null,
+      shape: shape,
+      direction: this.detectDirection(gridId),
+    });
+  };
+
+  detectDirection = (currentCoordinate) => {
+    if (this.state.previousCoordinates === null) {
+      return null;
+    }
+  };
+
+  submitLaneData = () => {
+    this.setState({
+      pathData: {
+        id: this.state.laneNumber,
+        path: this.state.laneData,
+      },
+    });
   };
 
   render() {
@@ -280,7 +342,7 @@ class DrawingTool extends Component {
                             name="point-name"
                             onChange={this.setLane}
                           >
-                            <option value={""} selected={""} default={""}>
+                            <option value={""} selected default={""} disabled>
                               Select lane number
                             </option>
                             <option value={1}>1</option>
@@ -304,10 +366,12 @@ class DrawingTool extends Component {
                             className="form-control"
                             name="point-name"
                             onChange={(e) =>
-                              this.setState({ remainingBlocks: e.target.value })
+                              this.setState({
+                                remainingBlocks: e.target.value,
+                              })
                             }
                           >
-                            <option value={""} selected={""} default={""}>
+                            <option value={""} selected default={""} disabled>
                               Select number of cars per lane
                             </option>
                             {this.carsPerLane()}
@@ -320,8 +384,16 @@ class DrawingTool extends Component {
                           Lane Type
                         </label>
                         <div className="col-sm-8">
-                          <select className="form-control" name="point-name">
-                            <option value={""} selected={""} default={""}>
+                          <select
+                            className="form-control"
+                            name="point-name"
+                            onChange={(e) =>
+                              e.target.value > 1
+                                ? this.setState({ mergePoints: 1 })
+                                : this.setState({ mergePoints: 0 })
+                            }
+                          >
+                            <option value={""} selected default={""} disabled>
                               Select lane type
                             </option>
                             <option value={1}>Separate Entry/Exit</option>
@@ -347,9 +419,23 @@ class DrawingTool extends Component {
                       <div className="row">
                         <div className="col-sm-4"></div>
                         <div className="col-sm-8">
-                          <button className="btn btn-primary btn-block save-path">
-                            Save path
-                          </button>
+                          {this.state.laneNumber >= 1 ? (
+                            <button
+                              className="btn btn-primary btn-block save-path"
+                              type="button"
+                              onClick={this.submitLaneData}
+                            >
+                              Save Lane {this.state.laneNumber} Configurations
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn-primary btn-block save-path disabled"
+                              type="button"
+                              onClick={this.submitLaneData}
+                            >
+                              Save Lane {this.state.laneNumber} Configurations
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -373,7 +459,7 @@ class DrawingTool extends Component {
                           Merge Points
                         </label>
                         <div className="col-sm-8 font-weight-bold">
-                          {this.state.remainingBlocks}
+                          {this.state.mergePoints}
                         </div>
                       </div>
                     </div>
@@ -401,16 +487,16 @@ class DrawingTool extends Component {
                 <div className="col-sm-8">
                   <select
                     className="form-control"
-                    name="point-name"
+                    name="pointName"
                     onChange={(e) => this.setState({ point: e.target.value })}
                   >
-                    <option Value="" selected default>
+                    <option value="" selected default>
                       Select point
                     </option>
-                    <option value="0">Arrival</option>
-                    <option value="1">Menu</option>
-                    <option value="2">Cashier</option>
-                    <option value="3">Pickup</option>
+                    <option value="1">Arrival</option>
+                    <option value="2">Menu</option>
+                    <option value="3">Cashier</option>
+                    <option value="4">Pickup</option>
                   </select>
                 </div>
               </div>
@@ -422,7 +508,7 @@ class DrawingTool extends Component {
               >
                 Close
               </Button>
-              <Button variant="primary" onClick={this.definePoints}>
+              <Button variant="primary" onClick={this.definePoint}>
                 Add
               </Button>
             </Modal.Footer>
