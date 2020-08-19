@@ -84,8 +84,8 @@ class DrawingTool extends Component {
     super();
     this.state = {
       show: false,
-      coordinate: null,
-      point: null,
+      pointCoordinate: null,
+      pointName: null,
       drawMap: [],
       remainingBlocks: 0,
       mergePoints: 0,
@@ -97,6 +97,7 @@ class DrawingTool extends Component {
         id: null,
         path: [],
       },
+      firstClick: false,
     };
   }
 
@@ -121,7 +122,7 @@ class DrawingTool extends Component {
               this.setState({
                 show: true,
                 close: false,
-                coordinate: y + "," + x,
+                pointCoordinate: y + "," + x,
               })
             }
             id={y + "," + x}
@@ -189,12 +190,13 @@ class DrawingTool extends Component {
   definePoint = (e) => {
     e.preventDefault();
     if (this.state.laneData) {
-      let newLaneData = this.state.laneData.filter((object) => {
-        if (object.coordinate === this.state.coordinate) {
-          console.log(object);
+      this.state.laneData.forEach((object) => {
+        if (object.pointCoordinate === this.state.pointCoordinate) {
+          object.point = this.state.pointName;
         }
       });
     }
+    this.setState({ show: false });
   };
 
   setLane = (e) => {
@@ -203,9 +205,6 @@ class DrawingTool extends Component {
 
   drawPath = (e) => {
     let gridId = e.target.id;
-    // let arrayId = gridId.split(",");
-    // let row = arrayId.splice(0, 1).join("");
-    // let column = arrayId.join(",");
 
     if (
       this.state.blockType === "Straight" &&
@@ -215,19 +214,26 @@ class DrawingTool extends Component {
         e,
         colors[this.state.laneNumber],
         "none",
-        squareStyles["straight"]
+        squareStyles["straight"],
+        1
       );
       this.setLaneData(gridId, 1);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (this.state.blockType === "Delete") {
       if (this.state.laneData) {
         let newLaneData = this.state.laneData.filter(function (object) {
-          return object.coordinate !== gridId;
+          return object.pointCoordinate !== gridId;
         });
         this.setState({ laneData: newLaneData });
       }
 
-      this.setGridStyle(e, "#fff", "1px solid #cfd8dc", squareStyles["delete"]);
+      this.setGridStyle(
+        e,
+        "#fff",
+        "1px solid #cfd8dc",
+        squareStyles["delete"],
+        0
+      );
       this.setState({ remainingBlocks: (this.state.remainingBlocks += 1) });
     } else if (
       this.state.blockType === "Top Left" &&
@@ -237,7 +243,8 @@ class DrawingTool extends Component {
         e,
         colors[this.state.laneNumber],
         "none",
-        squareStyles["topLeft"]
+        squareStyles["topLeft"],
+        2
       );
 
       this.setLaneData(gridId, 2);
@@ -250,7 +257,8 @@ class DrawingTool extends Component {
         e,
         colors[this.state.laneNumber],
         "none",
-        squareStyles["topRight"]
+        squareStyles["topRight"],
+        3
       );
 
       this.setLaneData(gridId, 3);
@@ -263,7 +271,8 @@ class DrawingTool extends Component {
         e,
         colors[this.state.laneNumber],
         "none",
-        squareStyles["bottomLeft"]
+        squareStyles["bottomLeft"],
+        4
       );
 
       this.setLaneData(gridId, 4);
@@ -276,31 +285,81 @@ class DrawingTool extends Component {
         e,
         colors[this.state.laneNumber],
         "none",
-        squareStyles["bottomRight"]
+        squareStyles["bottomRight"],
+        5
       );
       this.setLaneData(gridId, 5);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     }
   };
 
-  setGridStyle = (event, color, border, squareStyle) => {
+  setGridStyle = (event, color, border, squareStyle, type) => {
     event.target.style.backgroundColor = color;
     event.target.style.border = border;
     event.target.style.borderRadius = squareStyle;
+    document.getElementById(event.target.id).setAttribute("data-square", type);
   };
 
   setLaneData = (gridId, shape) => {
     this.state.laneData.push({
-      coordinate: gridId,
-      point: null,
+      pointCoordinate: gridId,
+      pointName: null,
       shape: shape,
       direction: this.detectDirection(gridId),
     });
   };
 
   detectDirection = (currentCoordinate) => {
-    if (this.state.previousCoordinates === null) {
+    if (this.state.previousCoordinates === null && !this.state.firstClick) {
+      this.setState({
+        firstClick: true,
+        previousCoordinates: currentCoordinate,
+      });
       return null;
+    } else {
+      let prevCoordinate = this.state.previousCoordinates.split(",");
+      let prevRow = prevCoordinate.splice(0, 1).join("");
+      let prevCol = prevCoordinate.join(",");
+      let preType = document
+        .getElementById(this.state.previousCoordinates)
+        .getAttribute("data-square");
+
+      let curCoordinate = currentCoordinate.split(",");
+      let curRow = curCoordinate.splice(0, 1).join("");
+      let curCol = curCoordinate.join(",");
+      let curType = document
+        .getElementById(currentCoordinate)
+        .getAttribute("data-square");
+
+      this.setState({
+        previousCoordinates: currentCoordinate,
+      });
+
+      if (curRow > prevRow && curCol === prevCol && curType === "1") {
+        return 1;
+      } else if (curRow < prevRow && curCol === prevCol && curType === "1") {
+        return 2;
+      } else if (curRow === prevRow && curCol > prevCol && curType === "1") {
+        return 3;
+      } else if (curRow === prevRow && curCol < prevCol && curType === "1") {
+        return 4;
+      } else if (curRow > prevRow && curCol === prevCol && curType === "5") {
+        return 5;
+      } else if (curRow > prevRow && curCol === prevCol && curType === "4") {
+        return 6;
+      } else if (curRow < prevRow && curCol === prevCol && curType === "2") {
+        return 7;
+      } else if (curRow < prevRow && curCol === prevCol && curType === "3") {
+        return 8;
+      } else if (curRow === prevRow && curCol > prevCol && curType === "5") {
+        return 9;
+      } else if (curRow === prevRow && curCol > prevCol && curType === "2") {
+        return 10;
+      } else if (curRow === prevRow && curCol < prevCol && curType === "4") {
+        return 11;
+      } else if (curRow === prevRow && curCol < prevCol && curType === "3") {
+        return 12;
+      }
     }
   };
 
@@ -311,6 +370,17 @@ class DrawingTool extends Component {
         path: this.state.laneData,
       },
     });
+
+    // axios
+    //   .post("http://localhost:8000/api/", JSON.stringify(this.state.pathData))
+    //   .then(
+    //     (response) => {
+    //       console.log(response);
+    //     },
+    //     (error) => {
+    //       console.log(error);
+    //     }
+    //   );
   };
 
   render() {
@@ -488,7 +558,9 @@ class DrawingTool extends Component {
                   <select
                     className="form-control"
                     name="pointName"
-                    onChange={(e) => this.setState({ point: e.target.value })}
+                    onChange={(e) =>
+                      this.setState({ pointName: e.target.value })
+                    }
                   >
                     <option value="" selected default>
                       Select point
