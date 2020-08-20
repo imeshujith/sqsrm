@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Modal, Button } from "react-bootstrap";
 import "./drawing-tool.css";
+import axios from "axios";
 
 const colors = {
   1: "#0277bd",
@@ -371,16 +372,19 @@ class DrawingTool extends Component {
       },
     });
 
-    // axios
-    //   .post("http://localhost:8000/api/", JSON.stringify(this.state.pathData))
-    //   .then(
-    //     (response) => {
-    //       console.log(response);
-    //     },
-    //     (error) => {
-    //       console.log(error);
-    //     }
-    //   );
+    axios
+      .post("http://localhost:8000/api/lanes/", {
+        lane_number: this.state.pathData.id,
+        lane_data: JSON.stringify(this.state.pathData),
+      })
+      .then(
+        (response) => {
+          console.log(JSON.parse(response.data));
+        },
+        (error) => {
+          console.log(error);
+        }
+      );
   };
 
   render() {
