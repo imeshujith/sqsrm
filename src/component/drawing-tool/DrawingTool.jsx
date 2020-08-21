@@ -365,26 +365,119 @@ class DrawingTool extends Component {
   };
 
   submitLaneData = () => {
-    this.setState({
-      pathData: {
-        id: this.state.laneNumber,
-        path: this.state.laneData,
-      },
-    });
+    let nextCoordinate = this.state.laneData[1]["pointCoordinate"].split(",");
+    let nextRow = nextCoordinate.splice(0, 1).join("");
+    let nextCol = nextCoordinate.join(",");
 
-    axios
-      .post("http://localhost:8000/api/lanes/", {
-        lane_number: this.state.pathData.id,
-        lane_data: JSON.stringify(this.state.pathData),
-      })
-      .then(
-        (response) => {
-          console.log(JSON.parse(response.data));
-        },
-        (error) => {
-          console.log(error);
+    let prevShape = this.state.laneData[0]["shape"];
+    let prevCoordinate = this.state.laneData[0]["pointCoordinate"].split(",");
+    let prevRow = prevCoordinate.splice(0, 1).join("");
+    let prevCol = prevCoordinate.join(",");
+
+    if (this.state.laneData) {
+      if (this.state.laneData[0]) {
+        if (nextRow > prevRow && nextCol === prevCol && prevShape === "1") {
+          this.state.laneData[0]["direction"] = 1;
+          console.log("1");
+        } else if (
+          nextRow < prevRow &&
+          nextCol === prevCol &&
+          prevShape === "1"
+        ) {
+          this.state.laneData[0]["direction"] = 2;
+          console.log("2");
+        } else if (
+          nextRow === prevRow &&
+          nextCol > prevCol &&
+          prevShape === "1"
+        ) {
+          this.state.laneData[0]["direction"] = 3;
+          console.log("3");
+        } else if (
+          nextRow === prevRow &&
+          nextCol < prevCol &&
+          prevShape === "1"
+        ) {
+          this.state.laneData[0]["direction"] = 4;
+          console.log("4");
+        } else if (
+          nextRow > prevRow &&
+          nextCol === prevCol &&
+          prevShape === "5"
+        ) {
+          this.state.laneData[0]["direction"] = 5;
+          console.log("5");
+        } else if (
+          nextRow > prevRow &&
+          nextCol === prevCol &&
+          prevShape === "4"
+        ) {
+          this.state.laneData[0]["direction"] = 6;
+          console.log("6");
+        } else if (
+          nextRow < prevRow &&
+          nextCol === prevCol &&
+          prevShape === "2"
+        ) {
+          this.state.laneData[0]["direction"] = 7;
+          console.log("7");
+        } else if (
+          nextRow < prevRow &&
+          nextCol === prevCol &&
+          prevShape === "3"
+        ) {
+          this.state.laneData[0]["direction"] = 8;
+          console.log("8");
+        } else if (
+          nextRow === prevRow &&
+          nextCol > prevCol &&
+          prevShape === "5"
+        ) {
+          this.state.laneData[0]["direction"] = 9;
+          console.log("9");
+        } else if (
+          nextRow === prevRow &&
+          nextCol > prevCol &&
+          prevShape === "2"
+        ) {
+          this.state.laneData[0]["direction"] = 10;
+          console.log("10");
+        } else if (
+          nextRow === prevRow &&
+          nextCol < prevCol &&
+          prevShape === "4"
+        ) {
+          this.state.laneData[0]["direction"] = 11;
+          console.log("11");
+        } else if (
+          nextRow === prevRow &&
+          nextCol < prevCol &&
+          prevShape === "3"
+        ) {
+          this.state.laneData[0]["direction"] = 12;
+          console.log("12");
         }
-      );
+      }
+    }
+
+    let pathData = {
+      id: this.state.laneNumber,
+      path: this.state.laneData,
+    };
+
+    // axios
+    //   .post("http://localhost:8000/api/lanes/", {
+    //     lane_number: this.state.pathData.id,
+    //     lane_data: JSON.stringify(pathData),
+    //   })
+    //   .then(
+    //     (response) => {
+    //       console.log(JSON.parse(response.data));
+    //     },
+    //     (error) => {
+    //       console.log(error);
+    //     }
+    //   );
   };
 
   render() {
