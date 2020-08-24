@@ -16,8 +16,8 @@ const mergePoint = "#102027";
 const blockStyles = {
   0: {
     style: {
-      width: "30px",
-      height: "30px",
+      width: "40px",
+      height: "40px",
       borderRadius: "0px 0px 0px 0px",
       backgroundColor: "#607d8b",
     },
@@ -25,9 +25,9 @@ const blockStyles = {
   },
   1: {
     style: {
-      width: "30px",
-      height: "30px",
-      borderRadius: "0px 0px 00px 0px",
+      width: "40px",
+      height: "40px",
+      borderRadius: "0px 0px 0px 0px",
       backgroundColor: "#fff",
       border: "solid thin #b0bec5",
     },
@@ -35,36 +35,36 @@ const blockStyles = {
   },
   2: {
     style: {
-      width: "30px",
-      height: "30px",
-      borderRadius: "0px 50px 0px 0px",
+      width: "40px",
+      height: "40px",
+      borderRadius: "0px 40px 0px 0px",
       backgroundColor: "#607d8b",
     },
     name: "Top Left",
   },
   3: {
     style: {
-      width: "30px",
-      height: "30px",
-      borderRadius: "50px 0px 0px 0px",
+      width: "40px",
+      height: "40px",
+      borderRadius: "40px 0px 0px 0px",
       backgroundColor: "#607d8b",
     },
     name: "Top Right",
   },
   4: {
     style: {
-      width: "30px",
-      height: "30px",
-      borderRadius: "0px 0px 0px 50px",
+      width: "40px",
+      height: "40px",
+      borderRadius: "0px 0px 0px 40px",
       backgroundColor: "#607d8b",
     },
     name: "Bottom Left",
   },
   5: {
     style: {
-      width: "30px",
-      height: "30px",
-      borderRadius: "0px 0px 50px 0px",
+      width: "40px",
+      height: "40px",
+      borderRadius: "0px 0px 40px 0px",
       backgroundColor: "#607d8b",
     },
     name: "Bottom Right",
@@ -86,7 +86,8 @@ class DrawingTool extends Component {
     this.state = {
       show: false,
       pointCoordinate: null,
-      pointName: null,
+      pointId: null,
+      pointLoopId: null,
       drawMap: [],
       remainingBlocks: 0,
       mergePoints: 0,
@@ -94,10 +95,7 @@ class DrawingTool extends Component {
       laneData: [],
       laneNumber: null,
       previousCoordinates: null,
-      pathData: {
-        id: null,
-        path: [],
-      },
+      pathData: [],
       firstClick: false,
     };
   }
@@ -157,6 +155,7 @@ class DrawingTool extends Component {
         columns.push(
           <td className="text-center" key={count}>
             <button
+              type="button"
               className="btn btn-success"
               onClick={this.selectBlock}
               id={blockStyles[count]["name"]}
@@ -192,8 +191,10 @@ class DrawingTool extends Component {
     e.preventDefault();
     if (this.state.laneData) {
       this.state.laneData.forEach((object) => {
-        if (object.pointCoordinate === this.state.pointCoordinate) {
-          object.point = this.state.pointName;
+        if (object.coordinate === this.state.pointCoordinate) {
+          object.pointCoordinate = this.state.pointCoordinate;
+          object.pointId = this.state.pointId;
+          object.pointLoopId = this.state.pointLoopId;
         }
       });
     }
@@ -223,7 +224,7 @@ class DrawingTool extends Component {
     } else if (this.state.blockType === "Delete") {
       if (this.state.laneData) {
         let newLaneData = this.state.laneData.filter(function (object) {
-          return object.pointCoordinate !== gridId;
+          return object.coordinate !== gridId;
         });
         this.setState({ laneData: newLaneData });
       }
@@ -299,13 +300,20 @@ class DrawingTool extends Component {
     event.target.style.border = border;
     event.target.style.borderRadius = squareStyle;
     document.getElementById(event.target.id).setAttribute("data-square", type);
+    document.getElementById(event.target.id).setAttribute("data-clicked", "1");
   };
 
   setLaneData = (gridId, shape) => {
     this.state.laneData.push({
-      pointCoordinate: gridId,
-      pointName: null,
+      coordinate: gridId,
+      pointCoordinate: null,
+      pointId: null,
+      pointLoopId: null,
       shape: shape,
+      mergePoint: false,
+      mergePointCoordinate: null,
+      parent: parseInt(this.state.laneNumber) == 1 ? true : false,
+      parentId: null,
       direction: this.detectDirection(gridId),
     });
   };
@@ -319,15 +327,12 @@ class DrawingTool extends Component {
       return null;
     } else {
       let prevCoordinate = this.state.previousCoordinates.split(",");
-      let prevRow = prevCoordinate.splice(0, 1).join("");
-      let prevCol = prevCoordinate.join(",");
-      let preType = document
-        .getElementById(this.state.previousCoordinates)
-        .getAttribute("data-square");
+      let prevRow = parseInt(prevCoordinate.splice(0, 1).join(""));
+      let prevCol = parseInt(prevCoordinate.join(","));
 
       let curCoordinate = currentCoordinate.split(",");
-      let curRow = curCoordinate.splice(0, 1).join("");
-      let curCol = curCoordinate.join(",");
+      let curRow = parseInt(curCoordinate.splice(0, 1).join(""));
+      let curCol = parseInt(curCoordinate.join(","));
       let curType = document
         .getElementById(currentCoordinate)
         .getAttribute("data-square");
@@ -365,97 +370,85 @@ class DrawingTool extends Component {
   };
 
   submitLaneData = () => {
-    let nextCoordinate = this.state.laneData[1]["pointCoordinate"].split(",");
-    let nextRow = nextCoordinate.splice(0, 1).join("");
-    let nextCol = nextCoordinate.join(",");
+    let nextCoordinate = this.state.laneData[1]["coordinate"].split(",");
+    let nextRow = parseInt(nextCoordinate.splice(0, 1).join(""));
+    let nextCol = parseInt(nextCoordinate.join(","));
 
     let prevShape = this.state.laneData[0]["shape"];
-    let prevCoordinate = this.state.laneData[0]["pointCoordinate"].split(",");
-    let prevRow = prevCoordinate.splice(0, 1).join("");
-    let prevCol = prevCoordinate.join(",");
+    let prevCoordinate = this.state.laneData[0]["coordinate"].split(",");
+    let prevRow = parseInt(prevCoordinate.splice(0, 1).join(""));
+    let prevCol = parseInt(prevCoordinate.join(","));
 
     if (this.state.laneData) {
       if (this.state.laneData[0]) {
-        if (nextRow > prevRow && nextCol === prevCol && prevShape === "1") {
+        if (nextRow > prevRow && nextCol === prevCol && prevShape === 1) {
           this.state.laneData[0]["direction"] = 1;
-          console.log("1");
         } else if (
           nextRow < prevRow &&
           nextCol === prevCol &&
-          prevShape === "1"
+          prevShape === 1
         ) {
           this.state.laneData[0]["direction"] = 2;
-          console.log("2");
         } else if (
           nextRow === prevRow &&
           nextCol > prevCol &&
-          prevShape === "1"
+          prevShape === 1
         ) {
           this.state.laneData[0]["direction"] = 3;
-          console.log("3");
         } else if (
           nextRow === prevRow &&
           nextCol < prevCol &&
-          prevShape === "1"
+          prevShape === 1
         ) {
           this.state.laneData[0]["direction"] = 4;
-          console.log("4");
         } else if (
           nextRow > prevRow &&
           nextCol === prevCol &&
-          prevShape === "5"
+          prevShape === 5
         ) {
           this.state.laneData[0]["direction"] = 5;
-          console.log("5");
         } else if (
           nextRow > prevRow &&
           nextCol === prevCol &&
-          prevShape === "4"
+          prevShape === 2
         ) {
           this.state.laneData[0]["direction"] = 6;
-          console.log("6");
         } else if (
           nextRow < prevRow &&
           nextCol === prevCol &&
-          prevShape === "2"
+          prevShape === 4
         ) {
           this.state.laneData[0]["direction"] = 7;
-          console.log("7");
         } else if (
           nextRow < prevRow &&
           nextCol === prevCol &&
-          prevShape === "3"
+          prevShape === 5
         ) {
           this.state.laneData[0]["direction"] = 8;
-          console.log("8");
         } else if (
           nextRow === prevRow &&
           nextCol > prevCol &&
-          prevShape === "5"
+          prevShape === 3
         ) {
           this.state.laneData[0]["direction"] = 9;
-          console.log("9");
         } else if (
           nextRow === prevRow &&
           nextCol > prevCol &&
-          prevShape === "2"
+          prevShape === 4
         ) {
           this.state.laneData[0]["direction"] = 10;
-          console.log("10");
         } else if (
           nextRow === prevRow &&
           nextCol < prevCol &&
-          prevShape === "4"
+          prevShape === 2
         ) {
           this.state.laneData[0]["direction"] = 11;
-          console.log("11");
         } else if (
           nextRow === prevRow &&
           nextCol < prevCol &&
-          prevShape === "3"
+          prevShape === 5
         ) {
           this.state.laneData[0]["direction"] = 12;
-          console.log("12");
         }
       }
     }
@@ -465,19 +458,32 @@ class DrawingTool extends Component {
       path: this.state.laneData,
     };
 
-    // axios
-    //   .post("http://localhost:8000/api/lanes/", {
-    //     lane_number: this.state.pathData.id,
-    //     lane_data: JSON.stringify(pathData),
-    //   })
-    //   .then(
-    //     (response) => {
-    //       console.log(JSON.parse(response.data));
-    //     },
-    //     (error) => {
-    //       console.log(error);
-    //     }
-    //   );
+    axios
+      .post("http://localhost:8000/api/lanes/", {
+        lane_number: parseInt(this.state.laneNumber),
+        lane_data: JSON.stringify(pathData),
+        created: Date.now(),
+      })
+      .then(
+        (response) => {
+          this.state.pathData.push(pathData);
+          this.setState({
+            coordinate: null,
+            pointId: null,
+            pointLoopId: null,
+            remainingBlocks: 0,
+            mergePoints: 0,
+            blockType: null,
+            laneData: [],
+            laneNumber: null,
+            previousCoordinates: null,
+            firstClick: false,
+          });
+        },
+        (error) => {
+          console.log(error);
+        }
+      );
   };
 
   render() {
@@ -570,6 +576,7 @@ class DrawingTool extends Component {
                             <option value={3}>
                               Common Entry, Separate Exit
                             </option>
+                            <option value={4}>Common Entry, Common Exit</option>
                           </select>
                         </div>
                       </div>
@@ -654,18 +661,54 @@ class DrawingTool extends Component {
                 <div className="col-sm-8">
                   <select
                     className="form-control"
-                    name="pointName"
-                    onChange={(e) =>
-                      this.setState({ pointName: e.target.value })
-                    }
+                    name="pointId"
+                    onChange={(e) => this.setState({ pointId: e.target.value })}
                   >
                     <option value="" selected default>
-                      Select point
+                      Select point name
                     </option>
                     <option value="1">Arrival</option>
                     <option value="2">Menu</option>
                     <option value="3">Cashier</option>
                     <option value="4">Pickup</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group row">
+                <label
+                  htmlFor="staticEmail"
+                  className="col-sm-4 col-form-label"
+                >
+                  Point Name
+                </label>
+                <div className="col-sm-8">
+                  <select
+                    className="form-control"
+                    name="pointId"
+                    onChange={(e) =>
+                      this.setState({ pointLoopId: e.target.value })
+                    }
+                  >
+                    <option value="" selected default>
+                      Select Loop Id
+                    </option>
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="13">13</option>
+                    <option value="14">14</option>
+                    <option value="15">15</option>
                   </select>
                 </div>
               </div>
