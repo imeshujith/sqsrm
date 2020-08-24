@@ -5,13 +5,13 @@ import axios from "axios";
 
 const colors = {
   1: "#0277bd",
-  2: "#00796b",
-  3: "#d32f2f",
+  2: "#4caf50",
+  3: "#e91e63",
   4: "#ffb74d",
-  5: "#ab47bc",
+  5: "#673ab7",
 };
 
-const mergePoint = "#102027";
+const mergePoint = "#263238";
 
 const blockStyles = {
   0: {
