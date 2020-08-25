@@ -4,7 +4,7 @@ import "./drawing-tool.css";
 import axios from "axios";
 
 const colors = {
-  1: "#0277bd",
+  1: "#2979ff",
   2: "#4caf50",
   3: "#e91e63",
   4: "#ffb74d",
@@ -19,7 +19,7 @@ const blockStyles = {
       width: "40px",
       height: "40px",
       borderRadius: "0px 0px 0px 0px",
-      backgroundColor: "#607d8b",
+      backgroundColor: "#009688",
     },
     name: "Straight",
   },
@@ -38,7 +38,7 @@ const blockStyles = {
       width: "40px",
       height: "40px",
       borderRadius: "0px 40px 0px 0px",
-      backgroundColor: "#607d8b",
+      backgroundColor: "#009688",
     },
     name: "Top Left",
   },
@@ -47,7 +47,7 @@ const blockStyles = {
       width: "40px",
       height: "40px",
       borderRadius: "40px 0px 0px 0px",
-      backgroundColor: "#607d8b",
+      backgroundColor: "#009688",
     },
     name: "Top Right",
   },
@@ -56,7 +56,7 @@ const blockStyles = {
       width: "40px",
       height: "40px",
       borderRadius: "0px 0px 0px 40px",
-      backgroundColor: "#607d8b",
+      backgroundColor: "#009688",
     },
     name: "Bottom Left",
   },
@@ -65,7 +65,7 @@ const blockStyles = {
       width: "40px",
       height: "40px",
       borderRadius: "0px 0px 40px 0px",
-      backgroundColor: "#607d8b",
+      backgroundColor: "#009688",
     },
     name: "Bottom Right",
   },
@@ -156,11 +156,15 @@ class DrawingTool extends Component {
           <td className="text-center" key={count}>
             <button
               type="button"
-              className="btn btn-success"
+              className="btn btn-link"
               onClick={this.selectBlock}
               id={blockStyles[count]["name"]}
             >
-              {blockStyles[count]["name"]}
+              <div
+                style={blockStyles[count]["style"]}
+                onClick={this.selectBlock}
+                id={blockStyles[count]["name"]}
+              ></div>
             </button>
           </td>
         );
@@ -219,7 +223,7 @@ class DrawingTool extends Component {
         squareStyles["straight"],
         1
       );
-      this.setLaneData(gridId, 1);
+      this.setLaneData(gridId, 1, false);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (this.state.blockType === "Delete") {
       if (this.state.laneData) {
@@ -249,7 +253,7 @@ class DrawingTool extends Component {
         2
       );
 
-      this.setLaneData(gridId, 2);
+      this.setLaneData(gridId, 2, false);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (
       this.state.blockType === "Top Right" &&
@@ -263,7 +267,7 @@ class DrawingTool extends Component {
         3
       );
 
-      this.setLaneData(gridId, 3);
+      this.setLaneData(gridId, 3, false);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (
       this.state.blockType === "Bottom Left" &&
@@ -277,7 +281,7 @@ class DrawingTool extends Component {
         4
       );
 
-      this.setLaneData(gridId, 4);
+      this.setLaneData(gridId, 4, false);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
     } else if (
       this.state.blockType === "Bottom Right" &&
@@ -290,8 +294,29 @@ class DrawingTool extends Component {
         squareStyles["bottomRight"],
         5
       );
-      this.setLaneData(gridId, 5);
+      this.setLaneData(gridId, 5, false);
       this.setState({ remainingBlocks: (this.state.remainingBlocks -= 1) });
+    } else if (this.state.mergePoints >= 1 && this.state.remainingBlocks == 0) {
+      this.state.mergePoints -= 1;
+      let data_square = parseInt(
+        document.getElementById(e.target.id).getAttribute("data-square")
+      );
+      this.setGridStyle(
+        e,
+        mergePoint,
+        "none",
+        data_square == 1
+          ? squareStyles["straight"]
+          : data_square == 2
+          ? squareStyles["topLeft"]
+          : data_square == 3
+          ? squareStyles["topRight"]
+          : data_square == 4
+          ? squareStyles["bottomLeft"]
+          : squareStyles["bottomRight"],
+        data_square
+      );
+      this.setLaneData(gridId, data_square, true);
     }
   };
 
@@ -301,20 +326,30 @@ class DrawingTool extends Component {
     event.target.style.borderRadius = squareStyle;
     document.getElementById(event.target.id).setAttribute("data-square", type);
     document.getElementById(event.target.id).setAttribute("data-clicked", "1");
+
+    if (this.state.laneNumber === 1) {
+      document
+        .getElementById(event.target.id)
+        .setAttribute("data-laneId", this.state.laneNumber);
+    }
   };
 
-  setLaneData = (gridId, shape) => {
+  setLaneData = (gridId, shape, merge) => {
+    let parentId = document.getElementById(gridId).getAttribute("data-laneId");
+
     this.state.laneData.push({
       coordinate: gridId,
       pointCoordinate: null,
       pointId: null,
       pointLoopId: null,
       shape: shape,
-      mergePoint: false,
-      mergePointCoordinate: null,
+      mergePoint: merge,
+      mergePointCoordinate: merge ? gridId : null,
       parent: parseInt(this.state.laneNumber) == 1 ? true : false,
-      parentId: null,
+      parentId: merge ? parentId : null,
       direction: this.detectDirection(gridId),
+      start: false,
+      end: false,
     });
   };
 
@@ -370,6 +405,14 @@ class DrawingTool extends Component {
   };
 
   submitLaneData = () => {
+    // set start point true for the array first element
+    this.state.laneData[0]["start"] = true;
+
+    // set end point true for the array last element
+    this.state.laneData[this.state.laneData.length - 1]["mergePoint"]
+      ? (this.state.laneData[this.state.laneData.length - 1]["end"] = true)
+      : (this.state.laneData[this.state.laneData.length - 2]["end"] = true);
+
     let nextCoordinate = this.state.laneData[1]["coordinate"].split(",");
     let nextRow = parseInt(nextCoordinate.splice(0, 1).join(""));
     let nextCol = parseInt(nextCoordinate.join(","));
@@ -451,6 +494,23 @@ class DrawingTool extends Component {
           this.state.laneData[0]["direction"] = 12;
         }
       }
+    }
+
+    if (this.state.laneNumber != 1) {
+      var equalPoints = this.state.pathData[0]["path"].find(
+        (path) =>
+          path["coordinate"] ==
+          this.state.laneData[this.state.laneData.length - 1]["coordinate"]
+      );
+    }
+
+    console.log(equalPoints);
+    if (equalPoints) {
+      let isMapped = false;
+      this.state.pathData[0]["path"].forEach((data) => {
+        if (data["coordinate"] === equalPoints) {
+        }
+      });
     }
 
     let pathData = {
@@ -595,7 +655,7 @@ class DrawingTool extends Component {
                         <div className="col-sm-8">
                           {this.state.laneNumber >= 1 ? (
                             <button
-                              className="btn btn-primary btn-block save-path"
+                              className="btn btn-primary btn-block btn-lg save-path"
                               type="button"
                               onClick={this.submitLaneData}
                             >
@@ -603,7 +663,7 @@ class DrawingTool extends Component {
                             </button>
                           ) : (
                             <button
-                              className="btn btn-primary btn-block save-path disabled"
+                              className="btn btn-primary btn-block btn-lg save-path disabled"
                               type="button"
                               onClick={this.submitLaneData}
                             >
@@ -614,26 +674,30 @@ class DrawingTool extends Component {
                       </div>
 
                       <div className="row mt-4">
-                        <label
-                          htmlFor="staticEmail"
-                          className="col-sm-4 font-weight-bold"
-                        >
-                          Remaining Blocks
-                        </label>
-                        <div className="col-sm-8 font-weight-bold">
-                          {this.state.remainingBlocks}
+                        <div className="col-sm-4"></div>
+                        <div className="col-sm-4">
+                          <div
+                            className="alert alert-success text-center"
+                            role="alert"
+                          >
+                            <small className="font-weight-bold">
+                              Remaining Blocks
+                            </small>
+                            <h1 className="mt-2">
+                              {this.state.remainingBlocks}
+                            </h1>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="row mt-4">
-                        <label
-                          htmlFor="staticEmail"
-                          className="col-sm-4 font-weight-bold"
-                        >
-                          Merge Points
-                        </label>
-                        <div className="col-sm-8 font-weight-bold">
-                          {this.state.mergePoints}
+                        <div className="col-sm-4">
+                          <div
+                            className="alert alert-info text-center"
+                            role="alert"
+                          >
+                            <small className="font-weight-bold">
+                              Merge Points
+                            </small>
+                            <h1 className="mt-2">{this.state.mergePoints}</h1>
+                          </div>
                         </div>
                       </div>
                     </div>
