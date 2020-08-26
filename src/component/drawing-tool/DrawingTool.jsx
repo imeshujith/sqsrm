@@ -409,7 +409,7 @@ class DrawingTool extends Component {
     this.state.laneData[0]["start"] = true;
 
     // set end point true for the array last element
-    this.state.laneData[this.state.laneData.length - 1]["mergePoint"]
+    this.state.laneNumber == 1
       ? (this.state.laneData[this.state.laneData.length - 1]["end"] = true)
       : (this.state.laneData[this.state.laneData.length - 2]["end"] = true);
 
@@ -504,11 +504,14 @@ class DrawingTool extends Component {
       );
     }
 
-    console.log(equalPoints);
     if (equalPoints) {
       let isMapped = false;
       this.state.pathData[0]["path"].forEach((data) => {
-        if (data["coordinate"] === equalPoints) {
+        if (isMapped) {
+          this.state.laneData.push(data);
+        }
+        if (data["coordinate"] === equalPoints["coordinate"]) {
+          isMapped = true;
         }
       });
     }
